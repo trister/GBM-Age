@@ -178,6 +178,54 @@ survdiff(tmpSurv.rembrandt  ~ riskEnet, rho=0)
 
 
 
+
+###############################################################################
+#  Look now at only the patients without an age                               #
+###############################################################################
+
+
+lowgradePat <- c()
+lowgradePat$surv <- gbmPat.rembrandt$surv[which(rembrandtPat$Age.at.Dx..years.==" --")]
+lowgradePat$survTime <- gbmPat.rembrandt$survTime[which(rembrandtPat$Age.at.Dx..years.==" --")]
+
+
+tmpSurv.lowgrade <- Surv(lowgradePat$survTime,lowgradePat$surv)
+
+
+yhatEnet <- predict(fitEnet, t(rembrandtEset.scaled[,which(rembrandtPat$Age.at.Dx..years.==" --")]), type="response", s="lambda.min")
+
+#boxplot(yhatEnet ~ as.factor(rembrandtPat$Age.at.Dx..years.[which(rembrandtPat$Age.at.Dx..years.==" --")]), ylab="Age", xlab="predicted Age group", main="elastic net validation")
+#stripchart(yhatEnet ~ as.factor(rembrandtPat$Age.at.Dx..years.[which(rembrandtPat$Age.at.Dx..years.==" --")]),pch=20, col="royalblue", vertical=TRUE, add=TRUE, cex=.6)
+
+#rocEnet <- roc(predictor=as.numeric(yhatEnet), response=as.factor(rembrandtPat$Age.at.Dx..years.[which(rembrandtPat$Age.at.Dx..years.==" --")]),ci=TRUE)
+#plot.roc(rocEnet,col="red")
+
+riskEnet <- as.vector(ifelse(yhatEnet >= median(yhatEnet), 1, 0))
+names(riskEnet) <- rownames(yhatEnet)
+
+
+
+#ggkm(survfit(tmpSurv.lowgrade  ~ riskEnet),timeby=12,main="KM of REMBRANDT")
+#summary(survfit(tmpSurv.lowgrade  ~ riskEnet))
+tmp1 <- quantile(yhatEnet)
+tmp <- unlist(lapply(yhatEnet,function(x){
+  if(x<tmp1[2]) 1
+  else if(x<tmp1[3]) 1
+  else if(x<tmp1[4]) 1
+  else 2
+}))
+
+plot(survfit(tmpSurv.lowgrade ~ tmp), main="elastic net model", xlab="months",ylab="probability of OS",col= c("blue","magenta"),lwd=3)
+ggkm(survfit(tmpSurv.lowgrade  ~ tmp),timeby=12,main="KM of REMBRANDT",ystratalabs=c("Younger","Older"))
+survdiff(tmpSurv.lowgrade ~ tmp, rho=0)
+
+
+
+
+
+
+
+
 ###############################################################################
 #  Look now at only the Grade IV                                              #
 ###############################################################################
